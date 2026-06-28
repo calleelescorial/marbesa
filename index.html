@@ -25,15 +25,27 @@
     .screen { display:none; min-height:100vh; padding-bottom:48px; }
     .screen.active { display:block; }
 
+    /* FIX: signin needs flex but ONLY when active */
+    #s-signin { flex-direction:column; align-items:center; justify-content:center; min-height:100vh; padding:32px 24px; }
+    #s-signin.active { display:flex; }
+
+    /* ── STARTUP ERROR (file:// or CDN failure) ── */
+    #startup-error {
+      display:none; position:fixed; inset:0; background:var(--bg);
+      flex-direction:column; align-items:center; justify-content:center;
+      padding:32px 24px; z-index:9999; text-align:center;
+    }
+    #startup-error.show { display:flex; }
+    .se-icon  { font-size:64px; margin-bottom:16px; }
+    .se-title { font-size:24px; font-weight:800; margin-bottom:12px; }
+    .se-msg   { font-size:15px; color:var(--muted); line-height:1.6; max-width:320px; }
+    .se-url   { display:inline-block; margin-top:16px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:12px 16px; font-size:14px; color:#93C5FD; font-family:monospace; word-break:break-all; }
+
     /* ── ADMIN BANNER ── */
     .admin-banner { display:none; background:#7C2D12; color:#FED7AA; text-align:center; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:7px 16px; }
     body.admin .admin-banner { display:block; }
 
     /* ── SIGN-IN SCREEN ── */
-    #s-signin {
-      display:flex; flex-direction:column; align-items:center;
-      justify-content:center; min-height:100vh; padding:32px 24px;
-    }
     .signin-logo { font-size:56px; margin-bottom:16px; }
     .signin-project { font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
     .signin-title { font-size:32px; font-weight:800; letter-spacing:-1px; margin-bottom:8px; }
@@ -53,7 +65,7 @@
     .home-header { padding:28px 20px 16px; display:flex; align-items:flex-start; justify-content:space-between; }
     .header-logo { font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
     .header-title { font-size:30px; font-weight:800; letter-spacing:-0.5px; }
-    .user-chip { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:6px 10px; display:flex; align-items:center; gap:6px; margin-top:4px; flex-shrink:0; }
+    .user-chip { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:6px 10px; display:flex; align-items:center; gap:6px; margin-top:4px; flex-shrink:0; cursor:pointer; }
     .user-avatar { width:26px; height:26px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
     .user-name { font-size:12px; color:var(--muted); max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .gear-icon { font-size:14px; }
@@ -179,6 +191,14 @@
   </style>
 </head>
 <body>
+
+<!-- ══ STARTUP ERROR (shown before anything if wrong context) ══ -->
+<div id="startup-error">
+  <div class="se-icon" id="se-icon">⚠️</div>
+  <div class="se-title" id="se-title">Cannot open here</div>
+  <div class="se-msg" id="se-msg">Loading…</div>
+  <div class="se-url" id="se-url" style="display:none;"></div>
+</div>
 
 <!-- ══ SIGN-IN ══ -->
 <div id="s-signin" class="screen active">
@@ -391,18 +411,82 @@
 
 <script>
 /* ══════════════════════════════════════════
-   MSAL CONFIG
+   STARTUP CHECKS — run before anything else
+   STARTUP_OK flag prevents later blocks from
+   overwriting the first error message shown.
 ══════════════════════════════════════════ */
-const MSAL_CONFIG = {
-  auth: {
-    clientId: 'de37a645-736e-4bfc-88a1-304ca65b8150',
-    authority: 'https://login.microsoftonline.com/754da90b-92bf-4591-adde-c0ada1824157',
-    redirectUri: 'https://calleelescorial.github.io/marbesa/',
-  },
-  cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: true }
-};
-const LOGIN_SCOPES = { scopes: ['Files.Read.All', 'User.Read'] };
-const msalInstance = new msalBrowser.PublicClientApplication(MSAL_CONFIG);
+var STARTUP_OK = true;
+
+(function startupChecks() {
+  const APP_URL = 'https://calleelescorial.github.io/marbesa/';
+
+  function showStartupError(icon, title, msg, showUrl) {
+    STARTUP_OK = false;
+    var se = document.getElementById('startup-error');
+    document.getElementById('se-icon').textContent = icon;
+    document.getElementById('se-title').textContent = title;
+    document.getElementById('se-msg').textContent = msg;
+    if (showUrl) {
+      var urlEl = document.getElementById('se-url');
+      urlEl.textContent = APP_URL;
+      urlEl.style.display = 'block';
+    }
+    se.classList.add('show');
+    document.querySelectorAll('.screen').forEach(function(s){ s.style.display='none'; });
+  }
+
+  // 1. Detect local file:// access — must show FIRST, nothing should overwrite it
+  if (window.location.protocol === 'file:') {
+    showStartupError(
+      '📱',
+      'Open in your browser',
+      'This app cannot run as a downloaded file. Copy the address below, ' +
+      'paste it into Chrome or your Huawei browser, then add it to your home screen.',
+      true
+    );
+    return;
+  }
+
+  // 2. Detect CDN failure (msalBrowser not loaded)
+  if (typeof msalBrowser === 'undefined') {
+    showStartupError(
+      '📶',
+      'Connection needed',
+      'A required library failed to load — you may be offline or a network ' +
+      'filter is blocking access. Please check your connection and reload the page.',
+      false
+    );
+    return;
+  }
+})();
+
+/* ══════════════════════════════════════════
+   MSAL CONFIG  (only runs if all checks pass)
+══════════════════════════════════════════ */
+var msalInstance = null;
+if (STARTUP_OK) {
+  try {
+    var MSAL_CONFIG = {
+      auth: {
+        clientId: 'de37a645-736e-4bfc-88a1-304ca65b8150',
+        authority: 'https://login.microsoftonline.com/754da90b-92bf-4591-adde-c0ada1824157',
+        redirectUri: 'https://calleelescorial.github.io/marbesa/',
+      },
+      cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: true }
+    };
+    msalInstance = new msalBrowser.PublicClientApplication(MSAL_CONFIG);
+  } catch(e) {
+    console.error('MSAL init failed:', e);
+    STARTUP_OK = false;
+    var se = document.getElementById('startup-error');
+    document.getElementById('se-icon').textContent = '⚠️';
+    document.getElementById('se-title').textContent = 'Initialisation error';
+    document.getElementById('se-msg').textContent = 'Authentication could not start: ' + e.message +
+      '. Please reload the page. If this persists, clear your browser cache.';
+    se.classList.add('show');
+    document.querySelectorAll('.screen').forEach(function(s){ s.style.display='none'; });
+  }
+} // end if (STARTUP_OK)
 
 /* ══════════════════════════════════════════
    STATE
@@ -439,13 +523,30 @@ function uid()  { return Date.now().toString(36) + Math.random().toString(36).sl
    AUTH
 ══════════════════════════════════════════ */
 async function initApp() {
-  try {
-    await msalInstance.handleRedirectPromise();
-  } catch(e) { console.error('Redirect error', e); }
+  // Safety check — if MSAL failed to init, do nothing
+  if (!msalInstance) return;
 
-  const accounts = msalInstance.getAllAccounts();
-  if (accounts.length > 0) {
-    currentAccount = accounts[0];
+  try {
+    const result = await msalInstance.handleRedirectPromise();
+    // If we just came back from a login redirect, result has the account
+    if (result && result.account) {
+      currentAccount = result.account;
+    }
+  } catch(e) {
+    console.error('Redirect handling error:', e);
+    // Show a helpful message but don't block — the user can try sign-in again
+    showSignInError('Redirect error: ' + (e.message || 'unknown') + '. Please try signing in again.');
+  }
+
+  // Check for an already-signed-in account
+  if (!currentAccount) {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length > 0) {
+      currentAccount = accounts[0];
+    }
+  }
+
+  if (currentAccount) {
     showApp();
   } else {
     showSignIn();
@@ -457,8 +558,13 @@ function showSignIn() {
   document.getElementById('s-signin').classList.add('active');
 }
 
+function showSignInError(msg) {
+  const el = document.getElementById('signin-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
 function showApp() {
-  // Set user chip
   const name = currentAccount.name || currentAccount.username || 'User';
   document.getElementById('user-name-chip').textContent = name.split(' ')[0];
   document.getElementById('user-initials').textContent = name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
@@ -466,29 +572,48 @@ function showApp() {
 }
 
 async function signIn() {
+  if (!msalInstance) return;
   document.getElementById('signin-error').style.display = 'none';
   try {
-    await msalInstance.loginRedirect(LOGIN_SCOPES);
+    await msalInstance.loginRedirect({ scopes: ['Files.Read.All', 'User.Read'] });
   } catch(e) {
-    console.error(e);
-    document.getElementById('signin-error').textContent = 'Sign in failed. Please try again.';
-    document.getElementById('signin-error').style.display = 'block';
+    console.error('Login error:', e);
+    // BrowserAuthErrors that just mean "popup blocked" or "redirect in progress" are non-fatal
+    if (e.errorCode === 'interaction_in_progress') {
+      showSignInError('A sign-in is already in progress. Please wait or reload the page.');
+    } else {
+      showSignInError('Sign in failed: ' + (e.message || 'Please try again.'));
+    }
   }
 }
 
 async function signOut() {
-  await msalInstance.logoutRedirect({ account: currentAccount });
+  if (!msalInstance) return;
+  try {
+    await msalInstance.logoutRedirect({ account: currentAccount });
+  } catch(e) {
+    console.error('Logout error:', e);
+    // Clear local state and go back to sign-in as fallback
+    currentAccount = null;
+    showSignIn();
+  }
 }
 
 async function getToken() {
+  if (!msalInstance || !currentAccount) return null;
+  const tokenRequest = { scopes: ['Files.Read.All', 'User.Read'], account: currentAccount };
   try {
-    const res = await msalInstance.acquireTokenSilent({ ...LOGIN_SCOPES, account: currentAccount });
+    const res = await msalInstance.acquireTokenSilent(tokenRequest);
     return res.accessToken;
   } catch(e) {
+    // Silent failed — try popup (interactive)
     try {
-      const res = await msalInstance.acquireTokenPopup({ ...LOGIN_SCOPES, account: currentAccount });
+      const res = await msalInstance.acquireTokenPopup(tokenRequest);
       return res.accessToken;
-    } catch(e2) { return null; }
+    } catch(e2) {
+      console.error('Token acquisition failed:', e2);
+      return null;
+    }
   }
 }
 
@@ -503,14 +628,18 @@ async function fetchFiles(section) {
   const encoded = folder.split('/').map(p => encodeURIComponent(p)).join('/');
   const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${encoded}:/children?$orderby=name desc&$select=id,name,lastModifiedDateTime,webUrl,file,folder&$top=100`;
 
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) {
-    if (res.status === 404) return { error: 'folder_not_found' };
-    return { error: 'api_error', status: res.status };
+  try {
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) {
+      if (res.status === 404) return { error: 'folder_not_found' };
+      return { error: 'api_error', status: res.status };
+    }
+    const data = await res.json();
+    return (data.value || []).filter(item => item.file);
+  } catch(e) {
+    console.error('Graph API fetch error:', e);
+    return null;
   }
-  const data = await res.json();
-  // Return only files (not sub-folders)
-  return (data.value || []).filter(item => item.file);
 }
 
 /* ══════════════════════════════════════════
@@ -532,7 +661,6 @@ async function loadSection(section) {
   const listEl = document.getElementById('file-list-' + section);
   const syncEl = document.getElementById('sync-row-' + section);
 
-  // Show loading
   listEl.innerHTML = `<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Loading files…</div></div>`;
   syncEl.innerHTML = '';
 
@@ -548,11 +676,10 @@ async function loadSection(section) {
     return;
   }
   if (files.error) {
-    listEl.innerHTML = renderError('Error loading files. Pull down to refresh.', section);
+    listEl.innerHTML = renderError('Error loading files (code ' + files.status + '). Try refreshing.', section);
     return;
   }
 
-  // Cache results
   S.fileCache[section] = { files, ts: Date.now() };
   save();
 
@@ -598,7 +725,6 @@ function renderError(msg, section) {
 }
 
 function openFile(url, fileId, section) {
-  // Mark as pending (seen) if it was new
   if (!S.fileStatus[fileId] || S.fileStatus[fileId] === 'new') {
     S.fileStatus[fileId] = 'pending';
     save();
@@ -628,7 +754,7 @@ let _contactId = null;
 function renderContacts() {
   const el = document.getElementById('contact-list');
   if (!S.contacts.length) {
-    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div>No contacts yet.<br><span style="font-size:12px;">Turn on Edit Mode (⚙️) to add contacts.</span></div>`;
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div>No contacts yet.<br><span style="font-size:12px;">Turn on Edit Mode (⚙️ Settings) to add contacts.</span></div>`;
     return;
   }
   el.innerHTML = S.contacts.map(c => `
@@ -647,37 +773,72 @@ function renderContacts() {
     </div>`).join('');
 }
 
-function openAddContact() { _contactId=null; document.getElementById('contact-modal-title').textContent='Add Contact'; ['ct-name','ct-role','ct-phone'].forEach(id=>document.getElementById(id).value=''); openOverlay('ov-contact'); }
-function openEditContact(id) {
-  const c = S.contacts.find(x=>x.id===id); if(!c) return;
-  _contactId=id; document.getElementById('contact-modal-title').textContent='Edit Contact';
-  document.getElementById('ct-name').value=c.name||''; document.getElementById('ct-role').value=c.role||''; document.getElementById('ct-phone').value=c.phone||'';
+function openAddContact() {
+  _contactId = null;
+  document.getElementById('contact-modal-title').textContent = 'Add Contact';
+  ['ct-name','ct-role','ct-phone'].forEach(id => document.getElementById(id).value = '');
   openOverlay('ov-contact');
 }
-function saveContact() {
-  const name=document.getElementById('ct-name').value.trim(); if(!name){alert('Enter a name.');return;}
-  const c={id:_contactId||uid(),name,role:document.getElementById('ct-role').value.trim(),phone:document.getElementById('ct-phone').value.trim().replace(/\D/g,'')};
-  if(_contactId){const i=S.contacts.findIndex(x=>x.id===_contactId);if(i!==-1)S.contacts[i]=c;}else S.contacts.push(c);
-  save(); closeOverlay('ov-contact'); renderContacts();
+
+function openEditContact(id) {
+  const c = S.contacts.find(x => x.id === id);
+  if (!c) return;
+  _contactId = id;
+  document.getElementById('contact-modal-title').textContent = 'Edit Contact';
+  document.getElementById('ct-name').value  = c.name  || '';
+  document.getElementById('ct-role').value  = c.role  || '';
+  document.getElementById('ct-phone').value = c.phone || '';
+  openOverlay('ov-contact');
 }
-function confirmDeleteContact(id,name) {
-  document.getElementById('delete-sub').textContent=`"${name}"`;
-  document.getElementById('delete-confirm-btn').onclick=()=>{S.contacts=S.contacts.filter(c=>c.id!==id);save();closeOverlay('ov-delete');renderContacts();};
+
+function saveContact() {
+  const name = document.getElementById('ct-name').value.trim();
+  if (!name) { alert('Please enter a name.'); return; }
+  const c = {
+    id: _contactId || uid(),
+    name,
+    role:  document.getElementById('ct-role').value.trim(),
+    phone: document.getElementById('ct-phone').value.trim().replace(/\D/g,''),
+  };
+  if (_contactId) {
+    const i = S.contacts.findIndex(x => x.id === _contactId);
+    if (i !== -1) S.contacts[i] = c;
+  } else {
+    S.contacts.push(c);
+  }
+  save();
+  closeOverlay('ov-contact');
+  renderContacts();
+}
+
+function confirmDeleteContact(id, name) {
+  document.getElementById('delete-sub').textContent = `"${name}"`;
+  document.getElementById('delete-confirm-btn').onclick = () => {
+    S.contacts = S.contacts.filter(c => c.id !== id);
+    save();
+    closeOverlay('ov-delete');
+    renderContacts();
+  };
   openOverlay('ov-delete');
 }
 
 /* ══════════════════════════════════════════
    CONFIRM REVIEWED
 ══════════════════════════════════════════ */
-let _confirmSection='';
+let _confirmSection = '';
+
 function showConfirm(section) {
-  _confirmSection=section.replace(/&amp;/g,'&');
-  document.getElementById('confirm-sub').textContent=`Confirmed: ${_confirmSection}`;
-  document.getElementById('confirm-wa-btn').onclick=()=>{
-    if(!S.arneNumber){alert("Set Arne's WhatsApp number in Settings first.");return;}
-    const msg=encodeURIComponent(`✅ Marbesa: I've reviewed and confirmed ${_confirmSection}. All good.`);
-    window.open(`https://wa.me/${S.arneNumber}?text=${msg}`,'_blank');
+  _confirmSection = section.replace(/&amp;/g, '&');
+  document.getElementById('confirm-sub').textContent = `Confirmed: ${_confirmSection}`;
+  document.getElementById('confirm-wa-btn').onclick = () => {
+    if (!S.arneNumber) {
+      alert("Please set Arne's WhatsApp number in Settings first.");
+      return;
+    }
+    const msg = encodeURIComponent(`✅ Marbesa: I've reviewed and confirmed ${_confirmSection}. All good.`);
+    window.open(`https://wa.me/${S.arneNumber}?text=${msg}`, '_blank');
     closeOverlay('ov-confirm');
+    markSectionDone(_confirmSection.toLowerCase().replace(/[^a-z]/g,''));
   };
   openOverlay('ov-confirm');
 }
@@ -686,35 +847,65 @@ function showConfirm(section) {
    SETTINGS
 ══════════════════════════════════════════ */
 function loadSettings() {
-  document.getElementById('cfg-phone').value = S.arneNumber||'';
-  SECTIONS.forEach(k => { document.getElementById(`cfg-f-${k}`).value = S.folders[k]||DEFAULT_FOLDERS[k]; });
-  document.getElementById('admin-toggle').classList.toggle('on',adminMode);
-  document.getElementById('export-box').style.display='none';
-  document.getElementById('import-area').style.display='none';
+  document.getElementById('cfg-phone').value = S.arneNumber || '';
+  SECTIONS.forEach(k => {
+    document.getElementById(`cfg-f-${k}`).value = S.folders[k] || DEFAULT_FOLDERS[k];
+  });
+  document.getElementById('admin-toggle').classList.toggle('on', adminMode);
+  document.getElementById('export-box').style.display = 'none';
+  document.getElementById('import-area').style.display = 'none';
 }
+
 function saveSettings() {
-  S.arneNumber=document.getElementById('cfg-phone').value.trim().replace(/\D/g,'');
-  SECTIONS.forEach(k=>{S.folders[k]=document.getElementById(`cfg-f-${k}`).value.trim()||DEFAULT_FOLDERS[k];});
+  S.arneNumber = document.getElementById('cfg-phone').value.trim().replace(/\D/g,'');
+  SECTIONS.forEach(k => {
+    S.folders[k] = document.getElementById(`cfg-f-${k}`).value.trim() || DEFAULT_FOLDERS[k];
+  });
   save();
-  const btn=document.querySelector('#s-settings .btn-primary'); const orig=btn.textContent;
-  btn.textContent='✅ Saved!'; setTimeout(()=>{btn.textContent=orig;},1500);
+  const btn = document.querySelector('#s-settings .btn-primary');
+  const orig = btn.textContent;
+  btn.textContent = '✅ Saved!';
+  setTimeout(() => { btn.textContent = orig; }, 1500);
 }
-function toggleAdmin() { adminMode=!adminMode; document.body.classList.toggle('admin',adminMode); document.getElementById('admin-toggle').classList.toggle('on',adminMode); }
-function exportData() { const b=document.getElementById('export-box'); b.style.display='block'; b.textContent=JSON.stringify({arneNumber:S.arneNumber,folders:S.folders,contacts:S.contacts}); }
+
+function toggleAdmin() {
+  adminMode = !adminMode;
+  document.body.classList.toggle('admin', adminMode);
+  document.getElementById('admin-toggle').classList.toggle('on', adminMode);
+}
+
+function exportData() {
+  const b = document.getElementById('export-box');
+  b.style.display = 'block';
+  b.textContent = JSON.stringify({ arneNumber: S.arneNumber, folders: S.folders, contacts: S.contacts });
+}
+
 function importData() {
-  const raw=document.getElementById('import-text').value.trim(); if(!raw){alert('Paste the data first.');return;}
-  try { const p=JSON.parse(raw); S.arneNumber=p.arneNumber||S.arneNumber; if(p.folders)S.folders={...DEFAULT_FOLDERS,...p.folders}; if(p.contacts)S.contacts=p.contacts; save(); alert('Imported. Reloading.'); location.reload(); }
-  catch(e){alert('Import failed. Paste the complete exported text.');}
+  const raw = document.getElementById('import-text').value.trim();
+  if (!raw) { alert('Paste the exported data first.'); return; }
+  try {
+    const p = JSON.parse(raw);
+    S.arneNumber = p.arneNumber || S.arneNumber;
+    if (p.folders)   S.folders   = { ...DEFAULT_FOLDERS, ...p.folders };
+    if (p.contacts)  S.contacts  = p.contacts;
+    save();
+    alert('Imported successfully. Reloading.');
+    location.reload();
+  } catch(e) {
+    alert('Import failed. Please paste the complete exported text without any changes.');
+  }
 }
 
 /* ══════════════════════════════════════════
-   ADMIN
+   ADMIN HELPERS
 ══════════════════════════════════════════ */
-// Mark individual files done from the confirm reviewed flow
-function markSectionDone(section) {
-  const cache = S.fileCache[section];
-  if (cache?.files) {
-    cache.files.forEach(f => { if (S.fileStatus[f.id] !== 'done') S.fileStatus[f.id] = 'done'; });
+function markSectionDone(sectionKey) {
+  // Try to match the section key from the section name
+  const match = SECTIONS.find(k => sectionKey.includes(k));
+  if (!match) return;
+  const cache = S.fileCache[match];
+  if (cache && cache.files) {
+    cache.files.forEach(f => { S.fileStatus[f.id] = 'done'; });
     save();
   }
 }
@@ -724,18 +915,24 @@ function markSectionDone(section) {
 ══════════════════════════════════════════ */
 function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
-function waMsg(phone,greeting) { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(greeting)}`,'_blank'); }
-function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function waMsg(phone, greeting) { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(greeting)}`, '_blank'); }
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 
 /* ══════════════════════════════════════════
    INIT
 ══════════════════════════════════════════ */
-SECTIONS.forEach(k=>{if(!S.folders[k])S.folders[k]=DEFAULT_FOLDERS[k];});
-if(!S.contacts)S.contacts=[];
-if(!S.fileStatus)S.fileStatus={};
-if(!S.fileCache)S.fileCache={};
+// Ensure state has all required keys (safe migration from older versions)
+SECTIONS.forEach(k => { if (!S.folders[k]) S.folders[k] = DEFAULT_FOLDERS[k]; });
+if (!S.contacts)   S.contacts   = [];
+if (!S.fileStatus) S.fileStatus = {};
+if (!S.fileCache)  S.fileCache  = {};
 
-initApp();
+// Only call initApp if startup checks all passed
+if (STARTUP_OK && msalInstance) {
+  initApp();
+}
 </script>
 </body>
 </html>
