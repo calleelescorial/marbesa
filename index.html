@@ -4,84 +4,76 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Marbesa</title>
+  <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
     :root {
       --bg:#0F172A; --card:#1E293B; --border:#334155;
       --text:#F8FAFC; --muted:#64748B; --muted2:#475569;
       --blue:#2563EB; --green:#059669; --amber:#D97706;
-      --red:#DC2626; --wa:#25D366;
+      --red:#DC2626; --wa:#25D366; --orange:#C2410C;
     }
-
-    html, body { height:100%; }
+    html,body { height:100%; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       background:var(--bg); color:var(--text);
       max-width:480px; margin:0 auto; min-height:100%;
       overscroll-behavior:none;
     }
 
-    /* ─── SCREENS ─────────────────────────────── */
+    /* ── SCREENS ── */
     .screen { display:none; min-height:100vh; padding-bottom:48px; }
     .screen.active { display:block; }
 
-    /* ─── ADMIN BANNER ────────────────────────── */
-    .admin-banner {
-      display:none; background:#7C2D12; color:#FED7AA;
-      text-align:center; font-size:11px; font-weight:700;
-      letter-spacing:1.5px; text-transform:uppercase; padding:7px 16px;
-    }
+    /* ── ADMIN BANNER ── */
+    .admin-banner { display:none; background:#7C2D12; color:#FED7AA; text-align:center; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; padding:7px 16px; }
     body.admin .admin-banner { display:block; }
 
-    /* ─── HEADERS ─────────────────────────────── */
-    .home-header {
-      padding:30px 20px 16px;
-      display:flex; align-items:flex-start; justify-content:space-between;
+    /* ── SIGN-IN SCREEN ── */
+    #s-signin {
+      display:flex; flex-direction:column; align-items:center;
+      justify-content:center; min-height:100vh; padding:32px 24px;
     }
+    .signin-logo { font-size:56px; margin-bottom:16px; }
+    .signin-project { font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+    .signin-title { font-size:32px; font-weight:800; letter-spacing:-1px; margin-bottom:8px; }
+    .signin-sub { font-size:14px; color:var(--muted); text-align:center; line-height:1.5; margin-bottom:48px; max-width:280px; }
+    .signin-btn {
+      width:100%; padding:20px; border-radius:16px; border:none;
+      background:var(--blue); color:#fff;
+      font-size:18px; font-weight:700; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:12px;
+      transition:opacity .1s;
+    }
+    .signin-btn:active { opacity:.85; }
+    .signin-btn-icon { font-size:22px; }
+    .signin-error { font-size:13px; color:#F87171; margin-top:16px; text-align:center; display:none; }
+
+    /* ── HOME HEADER ── */
+    .home-header { padding:28px 20px 16px; display:flex; align-items:flex-start; justify-content:space-between; }
     .header-logo { font-size:11px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
     .header-title { font-size:30px; font-weight:800; letter-spacing:-0.5px; }
+    .user-chip { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:6px 10px; display:flex; align-items:center; gap:6px; margin-top:4px; flex-shrink:0; }
+    .user-avatar { width:26px; height:26px; border-radius:50%; background:var(--blue); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#fff; flex-shrink:0; }
+    .user-name { font-size:12px; color:var(--muted); max-width:90px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .gear-icon { font-size:14px; }
 
-    .gear-btn {
-      background:var(--card); border:1px solid var(--border);
-      border-radius:10px; width:42px; height:42px;
-      font-size:20px; cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-      flex-shrink:0; margin-top:2px;
-    }
-
+    /* ── SECTION HEADER ── */
     .sec-header { padding:22px 20px 12px; }
-    .back-btn {
-      background:none; border:none; color:var(--muted);
-      font-size:15px; cursor:pointer; padding:0;
-      margin-bottom:16px; font-weight:500;
-      display:flex; align-items:center; gap:4px;
-    }
+    .back-btn { background:none; border:none; color:var(--muted); font-size:15px; cursor:pointer; padding:0; margin-bottom:16px; font-weight:500; display:flex; align-items:center; gap:4px; }
     .sec-icon { font-size:40px; margin-bottom:8px; }
     .sec-title { font-size:26px; font-weight:800; letter-spacing:-0.5px; }
 
-    /* ─── HOME GRID ───────────────────────────── */
-    .home-grid {
-      padding:0 16px;
-      display:grid; grid-template-columns:1fr 1fr; gap:12px;
-    }
-    .tile {
-      border-radius:18px; padding:22px 16px 18px;
-      cursor:pointer; border:none; text-align:left;
-      display:flex; flex-direction:column; align-items:flex-start; gap:10px;
-      min-height:140px; transition:transform .12s;
-    }
-    .tile:active { transform:scale(0.95); }
+    /* ── HOME GRID ── */
+    .home-grid { padding:0 16px; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .tile { border-radius:18px; padding:22px 16px 18px; cursor:pointer; border:none; text-align:left; display:flex; flex-direction:column; align-items:flex-start; gap:10px; min-height:140px; transition:transform .12s; }
+    .tile:active { transform:scale(.95); }
     .tile .t-icon { font-size:34px; }
     .tile .t-label { font-size:15px; font-weight:700; color:#fff; line-height:1.25; }
     .tile .t-sub { font-size:12px; color:rgba(255,255,255,.6); }
-    .tile.wide {
-      grid-column:1/-1; flex-direction:row; align-items:center;
-      min-height:92px; gap:16px;
-    }
+    .tile.wide { grid-column:1/-1; flex-direction:row; align-items:center; min-height:92px; gap:16px; }
     .tile.wide .t-icon { font-size:36px; }
     .tile.wide .t-label { font-size:17px; }
-
     .t-budget    { background:linear-gradient(140deg,#1E3A8A,#2563EB); }
     .t-permits   { background:linear-gradient(140deg,#92400E,#D97706); }
     .t-arch      { background:linear-gradient(140deg,#5B21B6,#7C3AED); }
@@ -90,237 +82,142 @@
     .t-features  { background:linear-gradient(140deg,#7C2D12,#C2410C); }
     .t-contacts  { background:linear-gradient(140deg,#1E293B,#475569); }
 
-    /* ─── SECTION LABEL ───────────────────────── */
-    .sec-label {
-      font-size:11px; color:var(--muted2);
-      text-transform:uppercase; letter-spacing:1.5px;
-      padding:16px 16px 8px; font-weight:700;
-    }
+    /* ── SECTION LABEL ── */
+    .sec-label { font-size:11px; color:var(--muted2); text-transform:uppercase; letter-spacing:1.5px; padding:16px 16px 8px; font-weight:700; }
 
-    /* ─── DOC LIST ────────────────────────────── */
-    .doc-list { margin:0 16px; }
+    /* ── LOADING / ERROR STATES ── */
+    .loading-wrap { display:flex; flex-direction:column; align-items:center; padding:40px 20px; }
+    .spinner { width:32px; height:32px; border:3px solid var(--border); border-top:3px solid var(--blue); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading-text { font-size:13px; color:var(--muted); margin-top:14px; }
+    .error-wrap { text-align:center; padding:28px 16px; }
+    .error-icon { font-size:36px; margin-bottom:8px; }
+    .error-text { font-size:14px; color:var(--muted); line-height:1.6; }
+    .retry-btn { margin-top:14px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:10px 20px; color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; }
 
-    .doc-item {
-      background:var(--card); border-radius:12px; padding:14px;
-      margin-bottom:8px; display:flex; align-items:flex-start; gap:10px;
-      border:1px solid var(--border);
-    }
-    .doc-item.has-link { cursor:pointer; }
-    .doc-item.has-link:active { opacity:.7; }
-    .doc-icon { font-size:22px; flex-shrink:0; padding-top:1px; }
-    .doc-body { flex:1; min-width:0; }
-    .doc-name { font-size:14px; font-weight:600; color:#E2E8F0; line-height:1.3; }
-    .doc-meta { font-size:12px; color:var(--muted); margin-top:4px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-
-    .cat-tag {
-      font-size:10px; font-weight:700; padding:2px 7px;
-      border-radius:6px; text-transform:uppercase; letter-spacing:.5px;
-    }
-    .cat-guesthouse { background:#1E3A8A; color:#93C5FD; }
-    .cat-security   { background:#1C1917; color:#FBBF24; }
-    .cat-solar      { background:#1A2E05; color:#86EFAC; }
-    .cat-health     { background:#2D1B69; color:#C4B5FD; }
-    .cat-other      { background:#1E293B; color:#94A3B8; }
-
-    .doc-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
-    .doc-status {
-      font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px;
-    }
+    /* ── FILE LIST ── */
+    .file-list { margin:0 16px; }
+    .file-item { background:var(--card); border-radius:12px; padding:14px; margin-bottom:8px; display:flex; align-items:center; gap:10px; border:1px solid var(--border); cursor:pointer; transition:opacity .1s; }
+    .file-item:active { opacity:.7; }
+    .file-icon { font-size:24px; flex-shrink:0; }
+    .file-body { flex:1; min-width:0; }
+    .file-name { font-size:14px; font-weight:600; color:#E2E8F0; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-meta { font-size:12px; color:var(--muted); margin-top:3px; }
+    .file-status { font-size:11px; font-weight:700; padding:4px 9px; border-radius:8px; flex-shrink:0; white-space:nowrap; }
     .s-done    { background:#052E16; color:#4ADE80; }
     .s-pending { background:#1C1917; color:#FBBF24; }
+    .s-new     { background:#172554; color:#93C5FD; }
 
-    .doc-edit-btns { display:none; flex-direction:row; gap:4px; }
-    body.admin .doc-edit-btns { display:flex; }
-    .ie-btn {
-      width:28px; height:28px; border-radius:7px; border:none;
-      font-size:13px; cursor:pointer;
-      display:flex; align-items:center; justify-content:center;
-    }
-    .ie-edit { background:#1D4ED8; color:#fff; }
-    .ie-del  { background:#7F1D1D; color:#fff; }
-
-    /* ADD DOC BUTTON */
-    .add-item-btn {
-      display:none; align-items:center; justify-content:center; gap:8px;
-      margin:0 16px 10px; padding:14px;
-      background:transparent; border:2px dashed var(--border);
-      border-radius:12px; color:var(--muted); font-size:14px; font-weight:600;
-      cursor:pointer; width:calc(100% - 32px);
-    }
-    body.admin .add-item-btn { display:flex; }
-
-    /* Category grouping header */
-    .cat-header {
-      font-size:12px; font-weight:700; color:var(--muted);
-      text-transform:uppercase; letter-spacing:1px;
-      padding:12px 0 6px;
-    }
+    /* Last sync row */
+    .sync-row { display:flex; align-items:center; justify-content:space-between; padding:0 16px 8px; }
+    .sync-text { font-size:11px; color:var(--muted); }
+    .refresh-btn { background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; padding:4px 8px; border-radius:6px; }
+    .refresh-btn:active { background:var(--card); }
 
     /* Empty state */
-    .empty-state {
-      text-align:center; padding:28px 16px 16px;
-      color:var(--muted); font-size:14px; line-height:1.6;
-    }
+    .empty-state { text-align:center; padding:28px 16px; color:var(--muted); font-size:14px; line-height:1.6; }
     .empty-icon { font-size:36px; margin-bottom:8px; }
 
-    /* ─── ACTION BUTTONS ──────────────────────── */
-    .action-btn {
-      display:flex; align-items:center; justify-content:center; gap:10px;
-      width:calc(100% - 32px); margin:8px 16px;
-      padding:20px; border-radius:14px; border:none;
-      font-size:17px; font-weight:700; cursor:pointer;
-      transition:transform .1s, opacity .1s;
-    }
+    /* ── ACTION BUTTONS ── */
+    .action-btn { display:flex; align-items:center; justify-content:center; gap:10px; width:calc(100% - 32px); margin:8px 16px; padding:20px; border-radius:14px; border:none; font-size:17px; font-weight:700; cursor:pointer; transition:transform .1s, opacity .1s; }
     .action-btn:active { transform:scale(.97); opacity:.85; }
     .btn-primary   { background:var(--blue); color:#fff; }
     .btn-success   { background:var(--green); color:#fff; }
     .btn-whatsapp  { background:var(--wa); color:#fff; }
     .btn-secondary { background:var(--card); color:#94A3B8; border:1px solid var(--border); }
     .btn-danger    { background:var(--red); color:#fff; }
-    .btn-ghost {
-      background:transparent; border:1px dashed var(--border);
-      color:var(--muted);
-    }
+    .btn-ghost     { background:transparent; border:1px dashed var(--border); color:var(--muted); }
 
-    /* ─── CONTACTS ────────────────────────────── */
-    .contact-card {
-      background:var(--card); border-radius:16px; padding:18px;
-      margin:0 16px 10px; border:1px solid var(--border);
-    }
+    /* ── CONTACTS ── */
+    .contact-card { background:var(--card); border-radius:16px; padding:18px; margin:0 16px 10px; border:1px solid var(--border); }
     .contact-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
-    .contact-info {}
     .contact-name { font-size:19px; font-weight:700; }
     .contact-role { font-size:13px; color:var(--muted); margin-top:2px; }
     .contact-edit-btns { display:none; gap:4px; }
     body.admin .contact-edit-btns { display:flex; }
     .contact-actions { display:flex; gap:8px; }
-    .contact-btn {
-      flex:1; padding:14px 8px; border-radius:10px; border:none;
-      font-size:14px; font-weight:700; cursor:pointer;
-      display:flex; align-items:center; justify-content:center; gap:6px;
-      transition:opacity .1s;
-    }
+    .contact-btn { flex:1; padding:14px 8px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:opacity .1s; }
     .contact-btn:active { opacity:.7; }
     .btn-call { background:var(--blue); color:#fff; }
     .btn-wa   { background:var(--wa); color:#fff; }
+    .ie-btn { width:28px; height:28px; border-radius:7px; border:none; font-size:13px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+    .ie-edit { background:#1D4ED8; color:#fff; }
+    .ie-del  { background:#7F1D1D; color:#fff; }
+    .add-item-btn { display:none; align-items:center; justify-content:center; gap:8px; margin:0 16px 10px; padding:14px; background:transparent; border:2px dashed var(--border); border-radius:12px; color:var(--muted); font-size:14px; font-weight:600; cursor:pointer; width:calc(100% - 32px); }
+    body.admin .add-item-btn { display:flex; }
 
-    /* ─── SETTINGS ────────────────────────────── */
+    /* ── SETTINGS ── */
     .settings-group { padding:16px 16px 0; }
     .settings-group-title { font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; }
     .settings-row { margin-bottom:12px; }
     .settings-row label { font-size:13px; color:var(--muted); display:block; margin-bottom:6px; }
-
-    .input {
-      width:100%; padding:14px; border-radius:10px;
-      background:var(--card); border:1px solid var(--border);
-      color:var(--text); font-size:15px; font-family:inherit;
-      outline:none; -webkit-appearance:none; appearance:none;
-    }
+    .input { width:100%; padding:14px; border-radius:10px; background:var(--card); border:1px solid var(--border); color:var(--text); font-size:15px; font-family:inherit; outline:none; -webkit-appearance:none; appearance:none; }
     .input:focus { border-color:var(--blue); }
     .input::placeholder { color:var(--muted2); }
-    select.input { cursor:pointer; }
-
     .settings-divider { height:1px; background:var(--border); margin:20px 16px; }
-
-    .admin-row {
-      display:flex; align-items:center; justify-content:space-between;
-      background:var(--card); border-radius:12px; padding:16px;
-      margin:0 16px; border:1px solid var(--border);
-    }
-    .admin-row-text {}
+    .admin-row { display:flex; align-items:center; justify-content:space-between; background:var(--card); border-radius:12px; padding:16px; margin:0 16px; border:1px solid var(--border); }
     .admin-row-label { font-size:15px; font-weight:600; }
     .admin-row-sub { font-size:12px; color:var(--muted); margin-top:2px; }
-    .toggle {
-      width:52px; height:30px; background:var(--border); border-radius:15px;
-      position:relative; cursor:pointer; transition:background .2s; border:none; flex-shrink:0;
-    }
+    .toggle { width:52px; height:30px; background:var(--border); border-radius:15px; position:relative; cursor:pointer; transition:background .2s; border:none; flex-shrink:0; }
     .toggle.on { background:var(--blue); }
-    .toggle::after {
-      content:''; position:absolute;
-      width:24px; height:24px; background:#fff; border-radius:50%;
-      top:3px; left:3px; transition:left .2s;
-    }
+    .toggle::after { content:''; position:absolute; width:24px; height:24px; background:#fff; border-radius:50%; top:3px; left:3px; transition:left .2s; }
     .toggle.on::after { left:25px; }
+    .signout-btn { display:flex; align-items:center; gap:8px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin:0 16px; color:#F87171; font-size:15px; font-weight:600; cursor:pointer; width:calc(100% - 32px); }
+    .export-box { background:var(--bg); border-radius:10px; padding:12px; font-size:12px; color:var(--muted); word-break:break-all; border:1px solid var(--border); margin-top:8px; max-height:80px; overflow-y:auto; font-family:monospace; }
 
-    .export-box {
-      background:var(--bg); border-radius:10px; padding:12px;
-      font-size:12px; color:var(--muted); word-break:break-all;
-      border:1px solid var(--border); margin-top:8px;
-      max-height:80px; overflow-y:auto; font-family:monospace;
-      line-height:1.4;
-    }
-
-    /* ─── OVERLAYS / SHEETS ───────────────────── */
-    .overlay {
-      display:none; position:fixed; inset:0;
-      background:rgba(0,0,0,.78); z-index:300;
-      align-items:flex-end; justify-content:center;
-    }
+    /* ── OVERLAYS ── */
+    .overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.78); z-index:300; align-items:flex-end; justify-content:center; }
     .overlay.open { display:flex; }
-    .sheet {
-      background:#1E293B; border-radius:24px 24px 0 0;
-      padding:0 20px 52px; width:100%; max-width:480px;
-      border-top:1px solid var(--border);
-      max-height:92vh; overflow-y:auto;
-    }
+    .sheet { background:#1E293B; border-radius:24px 24px 0 0; padding:0 20px 52px; width:100%; max-width:480px; border-top:1px solid var(--border); max-height:92vh; overflow-y:auto; }
     .sheet-handle { width:40px; height:4px; background:var(--border); border-radius:2px; margin:14px auto 0; }
     .sheet-title { font-size:20px; font-weight:800; padding:16px 0 20px; text-align:center; }
     .sheet-icon { font-size:50px; text-align:center; padding:20px 0 8px; }
     .sheet-sub { font-size:15px; color:#94A3B8; text-align:center; margin-bottom:24px; line-height:1.5; }
-
     .form-group { margin-bottom:14px; }
     .form-label { font-size:13px; color:var(--muted); margin-bottom:6px; display:block; font-weight:600; }
-
-    .status-toggle { display:flex; gap:8px; }
-    .status-opt {
-      flex:1; padding:12px; border-radius:10px;
-      border:2px solid var(--border); background:transparent;
-      color:var(--muted); font-size:14px; font-weight:700; cursor:pointer; text-align:center;
-    }
-    .status-opt.sel-pending { border-color:var(--amber); color:var(--amber); background:#1C1917; }
-    .status-opt.sel-done    { border-color:var(--green); color:var(--green); background:#052E16; }
-
-    /* ─── UTILITIES ───────────────────────────── */
-    .mt8  { margin-top:8px; }
-    .mt12 { margin-top:12px; }
-    .mt16 { margin-top:16px; }
-    .gap8 { gap:8px; }
+    .mt8 { margin-top:8px; } .mt16 { margin-top:16px; }
   </style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════════
-     HOME
-══════════════════════════════════════════════ -->
-<div class="screen active" id="s-home">
+<!-- ══ SIGN-IN ══ -->
+<div id="s-signin" class="screen active">
+  <div class="signin-logo">🏗️</div>
+  <div class="signin-project">Marbella · El Escorial 285</div>
+  <div class="signin-title">Marbesa</div>
+  <div class="signin-sub">Sign in with your Microsoft account to access the project.</div>
+  <button class="signin-btn" onclick="signIn()">
+    <span class="signin-btn-icon">🔐</span> Sign in with Microsoft
+  </button>
+  <div class="signin-error" id="signin-error"></div>
+</div>
+
+<!-- ══ HOME ══ -->
+<div class="screen" id="s-home">
   <div class="admin-banner">✏️ Edit Mode Active</div>
   <div class="home-header">
-    <div class="header-text">
+    <div>
       <div class="header-logo">Marbella · El Escorial 285</div>
       <div class="header-title">Marbesa</div>
     </div>
-    <button class="gear-btn" onclick="go('settings')" title="Settings">⚙️</button>
+    <button class="user-chip" onclick="go('settings')">
+      <div class="user-avatar" id="user-initials">?</div>
+      <div class="user-name" id="user-name-chip">Account</div>
+      <span class="gear-icon">⚙️</span>
+    </button>
   </div>
   <div class="home-grid">
     <button class="tile t-budget"    onclick="go('budget')">
-      <span class="t-icon">💰</span>
-      <span class="t-label">Budget &amp; Costs</span>
-      <span class="t-sub">Financials</span>
+      <span class="t-icon">💰</span><span class="t-label">Budget &amp; Costs</span><span class="t-sub">Financials</span>
     </button>
     <button class="tile t-permits"   onclick="go('permits')">
-      <span class="t-icon">📋</span>
-      <span class="t-label">Permits &amp; Legal</span>
-      <span class="t-sub">Documents</span>
+      <span class="t-icon">📋</span><span class="t-label">Permits &amp; Legal</span><span class="t-sub">Documents</span>
     </button>
     <button class="tile t-arch"      onclick="go('arch')">
-      <span class="t-icon">🏛️</span>
-      <span class="t-label">Architecture &amp; Design</span>
-      <span class="t-sub">Plans &amp; specs</span>
+      <span class="t-icon">🏛️</span><span class="t-label">Architecture &amp; Design</span><span class="t-sub">Plans &amp; specs</span>
     </button>
     <button class="tile t-landscape" onclick="go('landscape')">
-      <span class="t-icon">🌿</span>
-      <span class="t-label">Landscaping</span>
-      <span class="t-sub">Garden plans</span>
+      <span class="t-icon">🌿</span><span class="t-label">Landscaping</span><span class="t-sub">Garden plans</span>
     </button>
     <button class="tile t-photos wide" onclick="go('photos')">
       <span class="t-icon">📸</span>
@@ -337,183 +234,110 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     GENERIC SECTION SCREENS (budget/permits/arch/landscape/photos)
-══════════════════════════════════════════════ -->
+<!-- ══ SECTION SCREENS ══ -->
 <div class="screen" id="s-budget">
   <div class="admin-banner">✏️ Edit Mode Active</div>
-  <div class="sec-header">
-    <button class="back-btn" onclick="go('home')">← Home</button>
-    <div class="sec-icon">💰</div>
-    <div class="sec-title">Budget &amp; Costs</div>
-  </div>
-  <div class="sec-label">Documents</div>
-  <button class="add-item-btn" onclick="openAddDoc('budget')">+ Add Document</button>
-  <div class="doc-list" id="docs-budget"></div>
-  <div id="drive-btn-budget"></div>
+  <div class="sec-header"><button class="back-btn" onclick="go('home')">← Home</button><div class="sec-icon">💰</div><div class="sec-title">Budget &amp; Costs</div></div>
+  <div id="sync-row-budget"></div>
+  <div class="sec-label">Files</div>
+  <div id="file-list-budget"></div>
   <button class="action-btn btn-success" onclick="showConfirm('Budget &amp; Costs')">✅ Confirm Reviewed</button>
 </div>
 
 <div class="screen" id="s-permits">
   <div class="admin-banner">✏️ Edit Mode Active</div>
-  <div class="sec-header">
-    <button class="back-btn" onclick="go('home')">← Home</button>
-    <div class="sec-icon">📋</div>
-    <div class="sec-title">Permits &amp; Legal</div>
-  </div>
-  <div class="sec-label">Documents</div>
-  <button class="add-item-btn" onclick="openAddDoc('permits')">+ Add Document</button>
-  <div class="doc-list" id="docs-permits"></div>
-  <div id="drive-btn-permits"></div>
+  <div class="sec-header"><button class="back-btn" onclick="go('home')">← Home</button><div class="sec-icon">📋</div><div class="sec-title">Permits &amp; Legal</div></div>
+  <div id="sync-row-permits"></div>
+  <div class="sec-label">Files</div>
+  <div id="file-list-permits"></div>
   <button class="action-btn btn-success" onclick="showConfirm('Permits &amp; Legal')">✅ Confirm Reviewed</button>
 </div>
 
 <div class="screen" id="s-arch">
   <div class="admin-banner">✏️ Edit Mode Active</div>
-  <div class="sec-header">
-    <button class="back-btn" onclick="go('home')">← Home</button>
-    <div class="sec-icon">🏛️</div>
-    <div class="sec-title">Architecture &amp; Design</div>
-  </div>
-  <div class="sec-label">Documents</div>
-  <button class="add-item-btn" onclick="openAddDoc('arch')">+ Add Document</button>
-  <div class="doc-list" id="docs-arch"></div>
-  <div id="drive-btn-arch"></div>
+  <div class="sec-header"><button class="back-btn" onclick="go('home')">← Home</button><div class="sec-icon">🏛️</div><div class="sec-title">Architecture &amp; Design</div></div>
+  <div id="sync-row-arch"></div>
+  <div class="sec-label">Files</div>
+  <div id="file-list-arch"></div>
   <button class="action-btn btn-success" onclick="showConfirm('Architecture &amp; Design')">✅ Confirm Reviewed</button>
 </div>
 
 <div class="screen" id="s-landscape">
   <div class="admin-banner">✏️ Edit Mode Active</div>
-  <div class="sec-header">
-    <button class="back-btn" onclick="go('home')">← Home</button>
-    <div class="sec-icon">🌿</div>
-    <div class="sec-title">Landscaping</div>
-  </div>
-  <div class="sec-label">Documents</div>
-  <button class="add-item-btn" onclick="openAddDoc('landscape')">+ Add Document</button>
-  <div class="doc-list" id="docs-landscape"></div>
-  <div id="drive-btn-landscape"></div>
+  <div class="sec-header"><button class="back-btn" onclick="go('home')">← Home</button><div class="sec-icon">🌿</div><div class="sec-title">Landscaping</div></div>
+  <div id="sync-row-landscape"></div>
+  <div class="sec-label">Files</div>
+  <div id="file-list-landscape"></div>
   <button class="action-btn btn-success" onclick="showConfirm('Landscaping')">✅ Confirm Reviewed</button>
 </div>
 
 <div class="screen" id="s-photos">
   <div class="admin-banner">✏️ Edit Mode Active</div>
-  <div class="sec-header">
-    <button class="back-btn" onclick="go('home')">← Home</button>
-    <div class="sec-icon">📸</div>
-    <div class="sec-title">Site Progress</div>
-  </div>
-  <div class="sec-label">Updates &amp; Photos</div>
-  <button class="add-item-btn" onclick="openAddDoc('photos')">+ Add Entry</button>
-  <div class="doc-list" id="docs-photos"></div>
-  <div id="drive-btn-photos"></div>
+  <div class="sec-header"><button class="back-btn" onclick="go('home')">← Home</button><div class="sec-icon">📸</div><div class="sec-title">Site Progress</div></div>
+  <div id="sync-row-photos"></div>
+  <div class="sec-label">Files</div>
+  <div id="file-list-photos"></div>
   <button class="action-btn btn-success" onclick="showConfirm('Site Progress')">✅ Confirm Reviewed</button>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     FEATURES & SYSTEMS
-══════════════════════════════════════════════ -->
 <div class="screen" id="s-features">
   <div class="admin-banner">✏️ Edit Mode Active</div>
-  <div class="sec-header">
-    <button class="back-btn" onclick="go('home')">← Home</button>
-    <div class="sec-icon">🌟</div>
-    <div class="sec-title">Features &amp; Systems</div>
-  </div>
-  <div class="sec-label">All Features</div>
-  <button class="add-item-btn" onclick="openAddDoc('features')">+ Add Feature Document</button>
-  <div class="doc-list" id="docs-features"></div>
-  <div id="drive-btn-features"></div>
+  <div class="sec-header"><button class="back-btn" onclick="go('home')">← Home</button><div class="sec-icon">🌟</div><div class="sec-title">Features &amp; Systems</div></div>
+  <div id="sync-row-features"></div>
+  <div class="sec-label">Files</div>
+  <div id="file-list-features"></div>
   <button class="action-btn btn-success" onclick="showConfirm('Features &amp; Systems')">✅ Confirm Reviewed</button>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     CONTACTS
-══════════════════════════════════════════════ -->
+<!-- ══ CONTACTS ══ -->
 <div class="screen" id="s-contacts">
   <div class="admin-banner">✏️ Edit Mode Active</div>
-  <div class="sec-header">
-    <button class="back-btn" onclick="go('home')">← Home</button>
-    <div class="sec-icon">👥</div>
-    <div class="sec-title">Key Contacts</div>
-  </div>
+  <div class="sec-header"><button class="back-btn" onclick="go('home')">← Home</button><div class="sec-icon">👥</div><div class="sec-title">Key Contacts</div></div>
   <button class="add-item-btn" onclick="openAddContact()">+ Add Contact</button>
   <div id="contact-list"></div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     SETTINGS
-══════════════════════════════════════════════ -->
+<!-- ══ SETTINGS ══ -->
 <div class="screen" id="s-settings">
   <div class="admin-banner">✏️ Edit Mode Active</div>
-  <div class="sec-header">
-    <button class="back-btn" onclick="go('home')">← Home</button>
-    <div class="sec-icon">⚙️</div>
-    <div class="sec-title">Settings</div>
-  </div>
+  <div class="sec-header"><button class="back-btn" onclick="go('home')">← Home</button><div class="sec-icon">⚙️</div><div class="sec-title">Settings</div></div>
 
-  <!-- Admin toggle -->
   <div class="admin-row">
-    <div class="admin-row-text">
-      <div class="admin-row-label">Edit Mode</div>
-      <div class="admin-row-sub">Add, edit &amp; delete content</div>
-    </div>
+    <div><div class="admin-row-label">Edit Mode</div><div class="admin-row-sub">Add &amp; remove contacts</div></div>
     <button class="toggle" id="admin-toggle" onclick="toggleAdmin()"></button>
   </div>
 
   <div class="settings-divider"></div>
 
-  <!-- WhatsApp number -->
   <div class="settings-group">
     <div class="settings-group-title">Notifications</div>
     <div class="settings-row">
-      <label>Arne's WhatsApp number (with country code, no + or spaces)</label>
+      <label>Arne's WhatsApp number (country code, no + or spaces)</label>
       <input id="cfg-phone" class="input" type="tel" placeholder="34612345678" inputmode="numeric">
     </div>
   </div>
 
   <div class="settings-divider"></div>
 
-  <!-- OneDrive links -->
   <div class="settings-group">
-    <div class="settings-group-title">OneDrive Folder Links</div>
-    <div class="settings-row">
-      <label>💰 Budget &amp; Costs</label>
-      <input id="cfg-drive-budget"    class="input" type="url" placeholder="https://onedrive.live.com/...">
-    </div>
-    <div class="settings-row">
-      <label>📋 Permits &amp; Legal</label>
-      <input id="cfg-drive-permits"   class="input" type="url" placeholder="https://onedrive.live.com/...">
-    </div>
-    <div class="settings-row">
-      <label>🏛️ Architecture &amp; Design</label>
-      <input id="cfg-drive-arch"      class="input" type="url" placeholder="https://onedrive.live.com/...">
-    </div>
-    <div class="settings-row">
-      <label>🌿 Landscaping</label>
-      <input id="cfg-drive-landscape" class="input" type="url" placeholder="https://onedrive.live.com/...">
-    </div>
-    <div class="settings-row">
-      <label>📸 Site Progress</label>
-      <input id="cfg-drive-photos"    class="input" type="url" placeholder="https://onedrive.live.com/...">
-    </div>
-    <div class="settings-row">
-      <label>🌟 Features &amp; Systems</label>
-      <input id="cfg-drive-features"  class="input" type="url" placeholder="https://onedrive.live.com/...">
-    </div>
+    <div class="settings-group-title">OneDrive Folder Names</div>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Enter the exact folder path inside your OneDrive (relative to root).</p>
+    <div class="settings-row"><label>💰 Budget &amp; Costs</label><input id="cfg-f-budget"    class="input" placeholder="Marbesa/Budget &amp; Costs"></div>
+    <div class="settings-row"><label>📋 Permits &amp; Legal</label><input id="cfg-f-permits"   class="input" placeholder="Marbesa/Permits &amp; Legal"></div>
+    <div class="settings-row"><label>🏛️ Architecture &amp; Design</label><input id="cfg-f-arch" class="input" placeholder="Marbesa/Architecture &amp; Design"></div>
+    <div class="settings-row"><label>🌿 Landscaping</label><input id="cfg-f-landscape"         class="input" placeholder="Marbesa/Landscaping"></div>
+    <div class="settings-row"><label>📸 Site Progress</label><input id="cfg-f-photos"          class="input" placeholder="Marbesa/Site Progress"></div>
+    <div class="settings-row"><label>🌟 Features &amp; Systems</label><input id="cfg-f-features" class="input" placeholder="Marbesa/Features &amp; Systems"></div>
   </div>
 
   <button class="action-btn btn-primary mt16" onclick="saveSettings()">💾 Save Settings</button>
 
   <div class="settings-divider"></div>
 
-  <!-- Export / Import -->
   <div class="settings-group">
     <div class="settings-group-title">Sync Between Devices</div>
-    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;">
-      Use Export to copy all settings, contacts and documents to another phone. Paste the exported text into Import on the other device.
-    </p>
-    <button class="action-btn btn-secondary" onclick="exportData()" style="margin:0 0 8px;">📤 Export All Data</button>
+    <p style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px;">Export contacts &amp; settings to share with another phone.</p>
+    <button class="action-btn btn-secondary" onclick="exportData()" style="margin:0 0 8px;">📤 Export Data</button>
     <div class="export-box" id="export-box" style="display:none;"></div>
     <button class="action-btn btn-secondary mt8" onclick="document.getElementById('import-area').style.display='block'">📥 Import Data</button>
     <div id="import-area" style="display:none;">
@@ -522,13 +346,13 @@
     </div>
   </div>
 
+  <div class="settings-divider"></div>
+
+  <button class="signout-btn" onclick="signOut()">🚪 Sign out</button>
   <div style="height:20px;"></div>
 </div>
 
-
-<!-- ══════════════════════════════════════════════
-     MODAL: Confirm Reviewed
-══════════════════════════════════════════════ -->
+<!-- ══ MODAL: Confirm Reviewed ══ -->
 <div class="overlay" id="ov-confirm" onclick="closeOverlay('ov-confirm')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -540,78 +364,20 @@
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     MODAL: Add / Edit Document
-══════════════════════════════════════════════ -->
-<div class="overlay" id="ov-doc" onclick="closeOverlay('ov-doc')">
-  <div class="sheet" onclick="event.stopPropagation()">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title" id="doc-modal-title">Add Document</div>
-
-    <div class="form-group">
-      <label class="form-label">Document Name *</label>
-      <input id="doc-name" class="input" type="text" placeholder="e.g. Budget Overview Q3 2026">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Date</label>
-      <input id="doc-date" class="input" type="text" placeholder="e.g. 26 Jun 2026">
-    </div>
-    <div class="form-group">
-      <label class="form-label">OneDrive Link (optional)</label>
-      <input id="doc-link" class="input" type="url" placeholder="https://onedrive.live.com/...">
-    </div>
-    <div class="form-group" id="doc-cat-group" style="display:none;">
-      <label class="form-label">Feature Category</label>
-      <select id="doc-cat" class="input">
-        <option value="guesthouse">🏡 Guest House</option>
-        <option value="security">🔒 Security</option>
-        <option value="solar">⚡ Solar Energy</option>
-        <option value="health">💪 Health &amp; Wellness</option>
-        <option value="other">📌 Other</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Status</label>
-      <div class="status-toggle">
-        <button class="status-opt sel-pending" id="opt-pending" onclick="selectStatus('pending')">⏳ Pending</button>
-        <button class="status-opt" id="opt-done"    onclick="selectStatus('done')">✅ Done</button>
-      </div>
-    </div>
-
-    <button class="action-btn btn-primary" onclick="saveDoc()">Save</button>
-    <button class="action-btn btn-secondary" onclick="closeOverlay('ov-doc')">Cancel</button>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════════
-     MODAL: Add / Edit Contact
-══════════════════════════════════════════════ -->
+<!-- ══ MODAL: Add/Edit Contact ══ -->
 <div class="overlay" id="ov-contact" onclick="closeOverlay('ov-contact')">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
     <div class="sheet-title" id="contact-modal-title">Add Contact</div>
-
-    <div class="form-group">
-      <label class="form-label">Name *</label>
-      <input id="ct-name" class="input" type="text" placeholder="e.g. Carlos Ruiz">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Role / Title</label>
-      <input id="ct-role" class="input" type="text" placeholder="e.g. Lead Architect">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Phone Number (with country code, no + or spaces)</label>
-      <input id="ct-phone" class="input" type="tel" placeholder="34612345678" inputmode="numeric">
-    </div>
-
+    <div class="form-group"><label class="form-label">Name *</label><input id="ct-name" class="input" type="text" placeholder="e.g. Carlos Ruiz"></div>
+    <div class="form-group"><label class="form-label">Role</label><input id="ct-role" class="input" type="text" placeholder="e.g. Lead Architect"></div>
+    <div class="form-group"><label class="form-label">Phone (country code, no + or spaces)</label><input id="ct-phone" class="input" type="tel" placeholder="34612345678" inputmode="numeric"></div>
     <button class="action-btn btn-primary" onclick="saveContact()">Save</button>
     <button class="action-btn btn-secondary" onclick="closeOverlay('ov-contact')">Cancel</button>
   </div>
 </div>
 
-<!-- ══════════════════════════════════════════════
-     MODAL: Delete Confirm
-══════════════════════════════════════════════ -->
+<!-- ══ MODAL: Delete Confirm ══ -->
 <div class="overlay" id="ov-delete">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
@@ -623,183 +389,252 @@
   </div>
 </div>
 
-
 <script>
-/* ═══════════════════════════════════════════════
-   STATE & PERSISTENCE
-═══════════════════════════════════════════════ */
-const STORE = 'marbesa_v2';
+/* ══════════════════════════════════════════
+   MSAL CONFIG
+══════════════════════════════════════════ */
+const MSAL_CONFIG = {
+  auth: {
+    clientId: 'de37a645-736e-4bfc-88a1-304ca65b8150',
+    authority: 'https://login.microsoftonline.com/754da90b-92bf-4591-adde-c0ada1824157',
+    redirectUri: 'https://calleelescorial.github.io/marbesa/',
+  },
+  cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: true }
+};
+const LOGIN_SCOPES = { scopes: ['Files.Read.All', 'User.Read'] };
+const msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
 
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+const STORE = 'marbesa_v3';
 const SECTIONS = ['budget','permits','arch','landscape','photos','features'];
-
-const SECTION_META = {
-  budget:    { label:'Budget & Costs',       icon:'💰', fkey:'budget' },
-  permits:   { label:'Permits & Legal',      icon:'📋', fkey:'permits' },
-  arch:      { label:'Architecture & Design',icon:'🏛️', fkey:'arch' },
-  landscape: { label:'Landscaping',          icon:'🌿', fkey:'landscape' },
-  photos:    { label:'Site Progress',        icon:'📸', fkey:'photos' },
-  features:  { label:'Features & Systems',   icon:'🌟', fkey:'features' },
-};
-
-const CAT_META = {
-  guesthouse:{ label:'Guest House',      cls:'cat-guesthouse', icon:'🏡' },
-  security:  { label:'Security',         cls:'cat-security',   icon:'🔒' },
-  solar:     { label:'Solar Energy',     cls:'cat-solar',      icon:'⚡' },
-  health:    { label:'Health & Wellness',cls:'cat-health',     icon:'💪' },
-  other:     { label:'Other',            cls:'cat-other',      icon:'📌' },
-};
-
-const DOC_ICONS = {
-  budget:    '📊', permits: '📄', arch: '📐',
-  landscape: '🗺️', photos: '🏗️', features: '⭐'
+const DEFAULT_FOLDERS = {
+  budget:    'Marbesa/Budget & Costs',
+  permits:   'Marbesa/Permits & Legal',
+  arch:      'Marbesa/Architecture & Design',
+  landscape: 'Marbesa/Landscaping',
+  photos:    'Marbesa/Site Progress',
+  features:  'Marbesa/Features & Systems',
 };
 
 function defaultState() {
   return {
     arneNumber: '',
-    driveLinks: { budget:'', permits:'', arch:'', landscape:'', photos:'', features:'' },
+    folders: { ...DEFAULT_FOLDERS },
     contacts: [],
-    docs: { budget:[], permits:[], arch:[], landscape:[], photos:[], features:[] }
+    fileStatus: {},   // { fileId: 'done'|'pending' }
+    fileCache: {},    // { section: { files:[], ts: timestamp } }
   };
 }
 
-let S = (() => {
-  try { return JSON.parse(localStorage.getItem(STORE)) || defaultState(); }
-  catch(e) { return defaultState(); }
-})();
-
+let S = (() => { try { return JSON.parse(localStorage.getItem(STORE)) || defaultState(); } catch(e) { return defaultState(); } })();
 let adminMode = false;
+let currentAccount = null;
 
-function save() {
-  localStorage.setItem(STORE, JSON.stringify(S));
+function save() { localStorage.setItem(STORE, JSON.stringify(S)); }
+function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+
+/* ══════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════ */
+async function initApp() {
+  try {
+    await msalInstance.handleRedirectPromise();
+  } catch(e) { console.error('Redirect error', e); }
+
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    currentAccount = accounts[0];
+    showApp();
+  } else {
+    showSignIn();
+  }
 }
 
-function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+function showSignIn() {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-signin').classList.add('active');
+}
 
-/* ═══════════════════════════════════════════════
+function showApp() {
+  // Set user chip
+  const name = currentAccount.name || currentAccount.username || 'User';
+  document.getElementById('user-name-chip').textContent = name.split(' ')[0];
+  document.getElementById('user-initials').textContent = name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase();
+  go('home');
+}
+
+async function signIn() {
+  document.getElementById('signin-error').style.display = 'none';
+  try {
+    await msalInstance.loginRedirect(LOGIN_SCOPES);
+  } catch(e) {
+    console.error(e);
+    document.getElementById('signin-error').textContent = 'Sign in failed. Please try again.';
+    document.getElementById('signin-error').style.display = 'block';
+  }
+}
+
+async function signOut() {
+  await msalInstance.logoutRedirect({ account: currentAccount });
+}
+
+async function getToken() {
+  try {
+    const res = await msalInstance.acquireTokenSilent({ ...LOGIN_SCOPES, account: currentAccount });
+    return res.accessToken;
+  } catch(e) {
+    try {
+      const res = await msalInstance.acquireTokenPopup({ ...LOGIN_SCOPES, account: currentAccount });
+      return res.accessToken;
+    } catch(e2) { return null; }
+  }
+}
+
+/* ══════════════════════════════════════════
+   GRAPH API
+══════════════════════════════════════════ */
+async function fetchFiles(section) {
+  const token = await getToken();
+  if (!token) return null;
+
+  const folder = S.folders[section] || DEFAULT_FOLDERS[section];
+  const encoded = folder.split('/').map(p => encodeURIComponent(p)).join('/');
+  const url = `https://graph.microsoft.com/v1.0/me/drive/root:/${encoded}:/children?$orderby=name desc&$select=id,name,lastModifiedDateTime,webUrl,file,folder&$top=100`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    if (res.status === 404) return { error: 'folder_not_found' };
+    return { error: 'api_error', status: res.status };
+  }
+  const data = await res.json();
+  // Return only files (not sub-folders)
+  return (data.value || []).filter(item => item.file);
+}
+
+/* ══════════════════════════════════════════
    NAVIGATION
-═══════════════════════════════════════════════ */
-let currentScreen = 'home';
-
+══════════════════════════════════════════ */
 function go(key) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('s-' + key).classList.add('active');
   window.scrollTo(0, 0);
-  currentScreen = key;
-  if (key !== 'home' && key !== 'settings' && key !== 'contacts') renderDocs(key);
+  if (SECTIONS.includes(key)) loadSection(key);
   if (key === 'contacts') renderContacts();
   if (key === 'settings') loadSettings();
 }
 
-/* ═══════════════════════════════════════════════
-   ADMIN MODE
-═══════════════════════════════════════════════ */
-function toggleAdmin() {
-  adminMode = !adminMode;
-  document.body.classList.toggle('admin', adminMode);
-  document.getElementById('admin-toggle').classList.toggle('on', adminMode);
-}
+/* ══════════════════════════════════════════
+   SECTION / FILE RENDERING
+══════════════════════════════════════════ */
+async function loadSection(section) {
+  const listEl = document.getElementById('file-list-' + section);
+  const syncEl = document.getElementById('sync-row-' + section);
 
-/* ═══════════════════════════════════════════════
-   RENDER DOCS
-═══════════════════════════════════════════════ */
-function renderDocs(section) {
-  const container = document.getElementById('docs-' + section);
-  const docs = S.docs[section] || [];
-  const isFeatures = section === 'features';
+  // Show loading
+  listEl.innerHTML = `<div class="loading-wrap"><div class="spinner"></div><div class="loading-text">Loading files…</div></div>`;
+  syncEl.innerHTML = '';
 
-  if (docs.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">${SECTION_META[section].icon}</div>
-        No documents yet.<br>
-        <span style="font-size:12px;">Tap "+ Add Document" in Edit Mode to get started.</span>
-      </div>`;
-  } else if (isFeatures) {
-    // Group by category
-    const groups = {};
-    docs.forEach(d => {
-      const cat = d.category || 'other';
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(d);
-    });
-    const ORDER = ['guesthouse','security','solar','health','other'];
-    let html = '';
-    ORDER.forEach(cat => {
-      if (!groups[cat] || groups[cat].length === 0) return;
-      const cm = CAT_META[cat];
-      html += `<div class="cat-header">${cm.icon} ${cm.label}</div>`;
-      groups[cat].forEach(doc => { html += docItemHTML(doc, section); });
-    });
-    container.innerHTML = html;
-  } else {
-    container.innerHTML = docs.map(doc => docItemHTML(doc, section)).join('');
-  }
+  const files = await fetchFiles(section);
 
-  // Drive button
-  const driveWrap = document.getElementById('drive-btn-' + section);
-  const link = S.driveLinks[section];
-  if (link) {
-    driveWrap.innerHTML = `<button class="action-btn btn-primary" onclick="window.open('${link}','_blank')">📂 Open Folder in OneDrive</button>`;
-  } else {
-    driveWrap.innerHTML = `<button class="action-btn btn-ghost" onclick="go('settings')">📂 Set OneDrive folder link →</button>`;
-  }
-}
-
-function docItemHTML(doc, section) {
-  const statusCls = doc.status === 'done' ? 's-done' : 's-pending';
-  const statusLabel = doc.status === 'done' ? 'Done' : 'Pending';
-  const hasLink = doc.link ? 'has-link' : '';
-  const onClickDoc = doc.link ? `onclick="window.open('${doc.link}','_blank')"` : '';
-  const icon = DOC_ICONS[section] || '📄';
-
-  let catTag = '';
-  if (section === 'features' && doc.category) {
-    const cm = CAT_META[doc.category] || CAT_META.other;
-    catTag = `<span class="cat-tag ${cm.cls}">${cm.label}</span>`;
-  }
-
-  return `
-    <div class="doc-item ${hasLink}" ${onClickDoc}>
-      <span class="doc-icon">${icon}</span>
-      <div class="doc-body">
-        <div class="doc-name">${esc(doc.name)}</div>
-        <div class="doc-meta">
-          ${doc.date ? `<span class="doc-date">${esc(doc.date)}</span>` : ''}
-          ${catTag}
-        </div>
-      </div>
-      <div class="doc-right">
-        <span class="doc-status ${statusCls}">${statusLabel}</span>
-        <div class="doc-edit-btns">
-          <button class="ie-btn ie-edit" onclick="event.stopPropagation();openEditDoc('${section}','${doc.id}')">✏️</button>
-          <button class="ie-btn ie-del"  onclick="event.stopPropagation();confirmDeleteDoc('${section}','${doc.id}','${esc(doc.name)}')">🗑️</button>
-        </div>
-      </div>
-    </div>`;
-}
-
-/* ═══════════════════════════════════════════════
-   RENDER CONTACTS
-═══════════════════════════════════════════════ */
-function renderContacts() {
-  const container = document.getElementById('contact-list');
-  if (S.contacts.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-icon">👥</div>
-        No contacts yet.<br>
-        <span style="font-size:12px;">Tap "+ Add Contact" in Edit Mode to add team members.</span>
-      </div>`;
+  if (!files) {
+    listEl.innerHTML = renderError('Connection error. Check your internet and try again.', section);
     return;
   }
-  container.innerHTML = S.contacts.map(c => `
+  if (files.error === 'folder_not_found') {
+    const folder = S.folders[section] || DEFAULT_FOLDERS[section];
+    listEl.innerHTML = renderError(`Folder not found: "${folder}"<br>Check the folder name in Settings.`, section);
+    return;
+  }
+  if (files.error) {
+    listEl.innerHTML = renderError('Error loading files. Pull down to refresh.', section);
+    return;
+  }
+
+  // Cache results
+  S.fileCache[section] = { files, ts: Date.now() };
+  save();
+
+  renderFiles(section, files, syncEl, listEl);
+}
+
+function renderFiles(section, files, syncEl, listEl) {
+  const ts = S.fileCache[section]?.ts;
+  const tsStr = ts ? new Date(ts).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : '';
+
+  syncEl.innerHTML = `
+    <div class="sync-row">
+      <span class="sync-text">Updated ${tsStr}</span>
+      <button class="refresh-btn" onclick="loadSection('${section}')">↻ Refresh</button>
+    </div>`;
+
+  if (files.length === 0) {
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📂</div>No files in this folder yet.<br><span style="font-size:12px;">Upload files to your OneDrive folder and they'll appear here automatically.</span></div>`;
+    return;
+  }
+
+  listEl.innerHTML = files.map(f => {
+    const status = S.fileStatus[f.id] || 'new';
+    const statusCls = status === 'done' ? 's-done' : status === 'pending' ? 's-pending' : 's-new';
+    const statusLabel = status === 'done' ? '✓ Done' : status === 'pending' ? 'Pending' : 'New';
+    const icon = fileIcon(f.name);
+    const date = f.lastModifiedDateTime ? new Date(f.lastModifiedDateTime).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : '';
+
+    return `
+      <div class="file-item" onclick="openFile('${esc(f.webUrl)}', '${f.id}', '${section}')">
+        <span class="file-icon">${icon}</span>
+        <div class="file-body">
+          <div class="file-name">${esc(f.name)}</div>
+          <div class="file-meta">${date}</div>
+        </div>
+        <span class="file-status ${statusCls}">${statusLabel}</span>
+      </div>`;
+  }).join('');
+}
+
+function renderError(msg, section) {
+  return `<div class="error-wrap"><div class="error-icon">⚠️</div><div class="error-text">${msg}</div><button class="retry-btn" onclick="loadSection('${section}')">Try again</button></div>`;
+}
+
+function openFile(url, fileId, section) {
+  // Mark as pending (seen) if it was new
+  if (!S.fileStatus[fileId] || S.fileStatus[fileId] === 'new') {
+    S.fileStatus[fileId] = 'pending';
+    save();
+  }
+  window.open(url, '_blank');
+}
+
+function fileIcon(name) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  const map = {
+    pdf:'📄', xlsx:'📊', xls:'📊', csv:'📊',
+    docx:'📝', doc:'📝', txt:'📝',
+    jpg:'🖼️', jpeg:'🖼️', png:'🖼️', gif:'🖼️', heic:'🖼️', webp:'🖼️',
+    mp4:'🎬', mov:'🎬', avi:'🎬', mkv:'🎬',
+    dwg:'📐', dxf:'📐',
+    pptx:'📋', ppt:'📋',
+    zip:'📦', rar:'📦',
+  };
+  return map[ext] || '📎';
+}
+
+/* ══════════════════════════════════════════
+   CONTACTS
+══════════════════════════════════════════ */
+let _contactId = null;
+
+function renderContacts() {
+  const el = document.getElementById('contact-list');
+  if (!S.contacts.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">👥</div>No contacts yet.<br><span style="font-size:12px;">Turn on Edit Mode (⚙️) to add contacts.</span></div>`;
+    return;
+  }
+  el.innerHTML = S.contacts.map(c => `
     <div class="contact-card">
       <div class="contact-top">
-        <div class="contact-info">
-          <div class="contact-name">${esc(c.name)}</div>
-          ${c.role ? `<div class="contact-role">${esc(c.role)}</div>` : ''}
-        </div>
+        <div><div class="contact-name">${esc(c.name)}</div>${c.role ? `<div class="contact-role">${esc(c.role)}</div>` : ''}</div>
         <div class="contact-edit-btns">
           <button class="ie-btn ie-edit" onclick="openEditContact('${c.id}')">✏️</button>
           <button class="ie-btn ie-del"  onclick="confirmDeleteContact('${c.id}','${esc(c.name)}')">🗑️</button>
@@ -807,255 +642,100 @@ function renderContacts() {
       </div>
       <div class="contact-actions">
         ${c.phone ? `<button class="contact-btn btn-call" onclick="window.open('tel:+${c.phone}')">📞 Call</button>` : ''}
-        ${c.phone ? `<button class="contact-btn btn-wa"   onclick="waMsg('${c.phone}','Hi ${esc(c.name)} — ')">💬 WhatsApp</button>` : ''}
+        ${c.phone ? `<button class="contact-btn btn-wa" onclick="waMsg('${c.phone}','Hi ${esc(c.name)} — ')">💬 WhatsApp</button>` : ''}
       </div>
     </div>`).join('');
 }
 
-/* ═══════════════════════════════════════════════
-   DOC CRUD
-═══════════════════════════════════════════════ */
-let _docSection = null;
-let _docId = null;
-let _docStatus = 'pending';
-
-function openAddDoc(section) {
-  _docSection = section;
-  _docId = null;
-  _docStatus = 'pending';
-  document.getElementById('doc-modal-title').textContent = 'Add Document';
-  document.getElementById('doc-name').value = '';
-  document.getElementById('doc-date').value = '';
-  document.getElementById('doc-link').value = '';
-  document.getElementById('doc-cat').value = 'guesthouse';
-  document.getElementById('doc-cat-group').style.display = section === 'features' ? 'block' : 'none';
-  selectStatus('pending');
-  openOverlay('ov-doc');
-}
-
-function openEditDoc(section, id) {
-  const doc = (S.docs[section] || []).find(d => d.id === id);
-  if (!doc) return;
-  _docSection = section;
-  _docId = id;
-  _docStatus = doc.status || 'pending';
-  document.getElementById('doc-modal-title').textContent = 'Edit Document';
-  document.getElementById('doc-name').value = doc.name || '';
-  document.getElementById('doc-date').value = doc.date || '';
-  document.getElementById('doc-link').value = doc.link || '';
-  document.getElementById('doc-cat').value = doc.category || 'other';
-  document.getElementById('doc-cat-group').style.display = section === 'features' ? 'block' : 'none';
-  selectStatus(_docStatus);
-  openOverlay('ov-doc');
-}
-
-function selectStatus(val) {
-  _docStatus = val;
-  document.getElementById('opt-pending').className = 'status-opt' + (val === 'pending' ? ' sel-pending' : '');
-  document.getElementById('opt-done').className    = 'status-opt' + (val === 'done'    ? ' sel-done'    : '');
-}
-
-function saveDoc() {
-  const name = document.getElementById('doc-name').value.trim();
-  if (!name) { alert('Please enter a document name.'); return; }
-
-  const doc = {
-    id: _docId || uid(),
-    name,
-    date:     document.getElementById('doc-date').value.trim(),
-    link:     document.getElementById('doc-link').value.trim(),
-    category: document.getElementById('doc-cat').value,
-    status:   _docStatus,
-  };
-
-  if (_docId) {
-    const idx = S.docs[_docSection].findIndex(d => d.id === _docId);
-    if (idx !== -1) S.docs[_docSection][idx] = doc;
-  } else {
-    S.docs[_docSection].unshift(doc);
-  }
-
-  save();
-  closeOverlay('ov-doc');
-  renderDocs(_docSection);
-}
-
-function confirmDeleteDoc(section, id, name) {
-  document.getElementById('delete-sub').textContent = `"${name}"`;
-  document.getElementById('delete-confirm-btn').onclick = () => {
-    S.docs[section] = S.docs[section].filter(d => d.id !== id);
-    save();
-    closeOverlay('ov-delete');
-    renderDocs(section);
-  };
-  openOverlay('ov-delete');
-}
-
-/* ═══════════════════════════════════════════════
-   CONTACT CRUD
-═══════════════════════════════════════════════ */
-let _contactId = null;
-
-function openAddContact() {
-  _contactId = null;
-  document.getElementById('contact-modal-title').textContent = 'Add Contact';
-  document.getElementById('ct-name').value = '';
-  document.getElementById('ct-role').value = '';
-  document.getElementById('ct-phone').value = '';
-  openOverlay('ov-contact');
-}
-
+function openAddContact() { _contactId=null; document.getElementById('contact-modal-title').textContent='Add Contact'; ['ct-name','ct-role','ct-phone'].forEach(id=>document.getElementById(id).value=''); openOverlay('ov-contact'); }
 function openEditContact(id) {
-  const c = S.contacts.find(x => x.id === id);
-  if (!c) return;
-  _contactId = id;
-  document.getElementById('contact-modal-title').textContent = 'Edit Contact';
-  document.getElementById('ct-name').value = c.name || '';
-  document.getElementById('ct-role').value = c.role || '';
-  document.getElementById('ct-phone').value = c.phone || '';
+  const c = S.contacts.find(x=>x.id===id); if(!c) return;
+  _contactId=id; document.getElementById('contact-modal-title').textContent='Edit Contact';
+  document.getElementById('ct-name').value=c.name||''; document.getElementById('ct-role').value=c.role||''; document.getElementById('ct-phone').value=c.phone||'';
   openOverlay('ov-contact');
 }
-
 function saveContact() {
-  const name = document.getElementById('ct-name').value.trim();
-  if (!name) { alert('Please enter a name.'); return; }
-
-  const c = {
-    id:    _contactId || uid(),
-    name,
-    role:  document.getElementById('ct-role').value.trim(),
-    phone: document.getElementById('ct-phone').value.trim().replace(/\D/g,''),
-  };
-
-  if (_contactId) {
-    const idx = S.contacts.findIndex(x => x.id === _contactId);
-    if (idx !== -1) S.contacts[idx] = c;
-  } else {
-    S.contacts.push(c);
-  }
-
-  save();
-  closeOverlay('ov-contact');
-  renderContacts();
+  const name=document.getElementById('ct-name').value.trim(); if(!name){alert('Enter a name.');return;}
+  const c={id:_contactId||uid(),name,role:document.getElementById('ct-role').value.trim(),phone:document.getElementById('ct-phone').value.trim().replace(/\D/g,'')};
+  if(_contactId){const i=S.contacts.findIndex(x=>x.id===_contactId);if(i!==-1)S.contacts[i]=c;}else S.contacts.push(c);
+  save(); closeOverlay('ov-contact'); renderContacts();
 }
-
-function confirmDeleteContact(id, name) {
-  document.getElementById('delete-sub').textContent = `"${name}"`;
-  document.getElementById('delete-confirm-btn').onclick = () => {
-    S.contacts = S.contacts.filter(c => c.id !== id);
-    save();
-    closeOverlay('ov-delete');
-    renderContacts();
-  };
+function confirmDeleteContact(id,name) {
+  document.getElementById('delete-sub').textContent=`"${name}"`;
+  document.getElementById('delete-confirm-btn').onclick=()=>{S.contacts=S.contacts.filter(c=>c.id!==id);save();closeOverlay('ov-delete');renderContacts();};
   openOverlay('ov-delete');
 }
 
-/* ═══════════════════════════════════════════════
+/* ══════════════════════════════════════════
    CONFIRM REVIEWED
-═══════════════════════════════════════════════ */
-let _confirmSection = '';
-
+══════════════════════════════════════════ */
+let _confirmSection='';
 function showConfirm(section) {
-  _confirmSection = section.replace(/&amp;/g, '&');
-  document.getElementById('confirm-sub').textContent = `You've reviewed: ${_confirmSection}`;
-  document.getElementById('confirm-wa-btn').onclick = () => {
-    if (!S.arneNumber) {
-      alert('Set Arne\'s WhatsApp number in Settings first.');
-      return;
-    }
-    const msg = encodeURIComponent(`✅ Marbesa: I've reviewed and confirmed ${_confirmSection}. All good.`);
-    window.open(`https://wa.me/${S.arneNumber}?text=${msg}`, '_blank');
+  _confirmSection=section.replace(/&amp;/g,'&');
+  document.getElementById('confirm-sub').textContent=`Confirmed: ${_confirmSection}`;
+  document.getElementById('confirm-wa-btn').onclick=()=>{
+    if(!S.arneNumber){alert("Set Arne's WhatsApp number in Settings first.");return;}
+    const msg=encodeURIComponent(`✅ Marbesa: I've reviewed and confirmed ${_confirmSection}. All good.`);
+    window.open(`https://wa.me/${S.arneNumber}?text=${msg}`,'_blank');
     closeOverlay('ov-confirm');
   };
   openOverlay('ov-confirm');
 }
 
-/* ═══════════════════════════════════════════════
+/* ══════════════════════════════════════════
    SETTINGS
-═══════════════════════════════════════════════ */
+══════════════════════════════════════════ */
 function loadSettings() {
-  document.getElementById('cfg-phone').value = S.arneNumber || '';
-  SECTIONS.forEach(k => {
-    document.getElementById(`cfg-drive-${k}`).value = S.driveLinks[k] || '';
-  });
-  document.getElementById('admin-toggle').classList.toggle('on', adminMode);
-  // Hide export box on load
-  document.getElementById('export-box').style.display = 'none';
-  document.getElementById('import-area').style.display = 'none';
+  document.getElementById('cfg-phone').value = S.arneNumber||'';
+  SECTIONS.forEach(k => { document.getElementById(`cfg-f-${k}`).value = S.folders[k]||DEFAULT_FOLDERS[k]; });
+  document.getElementById('admin-toggle').classList.toggle('on',adminMode);
+  document.getElementById('export-box').style.display='none';
+  document.getElementById('import-area').style.display='none';
 }
-
 function saveSettings() {
-  S.arneNumber = document.getElementById('cfg-phone').value.trim().replace(/\D/g,'');
-  SECTIONS.forEach(k => {
-    S.driveLinks[k] = document.getElementById(`cfg-drive-${k}`).value.trim();
-  });
+  S.arneNumber=document.getElementById('cfg-phone').value.trim().replace(/\D/g,'');
+  SECTIONS.forEach(k=>{S.folders[k]=document.getElementById(`cfg-f-${k}`).value.trim()||DEFAULT_FOLDERS[k];});
   save();
-  // Show brief confirmation
-  const btn = document.querySelector('#s-settings .btn-primary');
-  const orig = btn.textContent;
-  btn.textContent = '✅ Saved!';
-  setTimeout(() => { btn.textContent = orig; }, 1500);
+  const btn=document.querySelector('#s-settings .btn-primary'); const orig=btn.textContent;
+  btn.textContent='✅ Saved!'; setTimeout(()=>{btn.textContent=orig;},1500);
 }
-
-/* ═══════════════════════════════════════════════
-   EXPORT / IMPORT
-═══════════════════════════════════════════════ */
-function exportData() {
-  const box = document.getElementById('export-box');
-  box.style.display = 'block';
-  box.textContent = JSON.stringify(S);
-}
-
+function toggleAdmin() { adminMode=!adminMode; document.body.classList.toggle('admin',adminMode); document.getElementById('admin-toggle').classList.toggle('on',adminMode); }
+function exportData() { const b=document.getElementById('export-box'); b.style.display='block'; b.textContent=JSON.stringify({arneNumber:S.arneNumber,folders:S.folders,contacts:S.contacts}); }
 function importData() {
-  const raw = document.getElementById('import-text').value.trim();
-  if (!raw) { alert('Paste the exported data first.'); return; }
-  try {
-    const parsed = JSON.parse(raw);
-    if (!parsed.docs || !parsed.contacts) throw new Error('Invalid format');
-    S = parsed;
+  const raw=document.getElementById('import-text').value.trim(); if(!raw){alert('Paste the data first.');return;}
+  try { const p=JSON.parse(raw); S.arneNumber=p.arneNumber||S.arneNumber; if(p.folders)S.folders={...DEFAULT_FOLDERS,...p.folders}; if(p.contacts)S.contacts=p.contacts; save(); alert('Imported. Reloading.'); location.reload(); }
+  catch(e){alert('Import failed. Paste the complete exported text.');}
+}
+
+/* ══════════════════════════════════════════
+   ADMIN
+══════════════════════════════════════════ */
+// Mark individual files done from the confirm reviewed flow
+function markSectionDone(section) {
+  const cache = S.fileCache[section];
+  if (cache?.files) {
+    cache.files.forEach(f => { if (S.fileStatus[f.id] !== 'done') S.fileStatus[f.id] = 'done'; });
     save();
-    alert('Data imported successfully. The app will now reload.');
-    location.reload();
-  } catch(e) {
-    alert('Import failed. Make sure you pasted the complete exported text.');
   }
 }
 
-/* ═══════════════════════════════════════════════
-   OVERLAYS
-═══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   OVERLAYS & UTILS
+══════════════════════════════════════════ */
 function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+function waMsg(phone,greeting) { window.open(`https://wa.me/${phone}?text=${encodeURIComponent(greeting)}`,'_blank'); }
+function esc(str) { return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-/* ═══════════════════════════════════════════════
-   UTILITIES
-═══════════════════════════════════════════════ */
-function waMsg(phone, greeting) {
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(greeting)}`, '_blank');
-}
-
-function esc(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#39;');
-}
-
-/* ═══════════════════════════════════════════════
+/* ══════════════════════════════════════════
    INIT
-═══════════════════════════════════════════════ */
-// Ensure state has all required keys (backwards compat)
-SECTIONS.forEach(k => {
-  if (!S.docs[k]) S.docs[k] = [];
-  if (!S.driveLinks) S.driveLinks = {};
-  if (!S.driveLinks[k]) S.driveLinks[k] = '';
-});
-if (!S.contacts) S.contacts = [];
-if (!S.arneNumber) S.arneNumber = '';
+══════════════════════════════════════════ */
+SECTIONS.forEach(k=>{if(!S.folders[k])S.folders[k]=DEFAULT_FOLDERS[k];});
+if(!S.contacts)S.contacts=[];
+if(!S.fileStatus)S.fileStatus={};
+if(!S.fileCache)S.fileCache={};
 
+initApp();
 </script>
 </body>
 </html>
